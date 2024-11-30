@@ -16,3 +16,6 @@ npm i express mongoose jsonwebtoken cors dotenv nodemon
 ```
 npm start
 ```
+
+## database
+![Screenshot](https://github.com/user-attachments/assets/aa033009-8269-4c6d-ba23-8c396ff305d7)
