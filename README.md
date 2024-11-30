@@ -11,3 +11,8 @@ Express(NodeJS framework), mongoose(ODM - Object Data Modeling) for MongoDB, nod
 ```
 npm i express mongoose jsonwebtoken cors dotenv nodemon
 ```
+
+## run source
+```
+npm start
+```
