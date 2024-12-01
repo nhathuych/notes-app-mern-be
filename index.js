@@ -144,6 +144,29 @@ app.put('/toggle-note-pinned/:noteId', authenticateToken, async (req, res) => {
   }
 })
 
+// Search notes
+app.get('/search-notes', authenticateToken, async (req, res) => {
+  const { user } = req.user // retrieved from authenticateToken
+  let { query } = req.query
+  query = query.trim()
+
+  if (query.length == 0) renderError(res, 'Enter your search query.')
+
+  try {
+    const notes = await Note.find({
+      userId: user._id,
+      $or: [
+        { title:   { $regex: new RegExp(query, 'i') } },
+        { content: { $regex: new RegExp(query, 'i') } }
+      ]
+    })
+
+    renderSuccess(res, notes, 'Notes retrieved successfully.')
+  } catch(error) {
+    renderError(res, error.message, 500)
+  }
+})
+
 app.listen(8000)
 
 module.exports = app
