@@ -12,8 +12,7 @@ const express = require('express')
 const cors = require('cors')
 const app = express()
 
-const jwt = require('jsonwebtoken')
-const { authenticateToken, generateAccessToken, getUserFromBearerToken, renderError, renderSuccess } = require('./utilities')
+const { authenticateToken, generateAccessToken, renderError, renderSuccess } = require('./utilities')
 
 app.use(express.json())
 
@@ -59,13 +58,21 @@ app.post('/login', async (req, res) => {
   renderSuccess(res, { ...user._doc, accessToken }, 'Login Successfull.')
 })
 
+// Get user info from access token
+app.get('/get-user', authenticateToken, async (req, res) => {
+  const { user } = req.user
+  const currentUser = await User.findOne({ _id: user._id })
+
+  currentUser ? renderSuccess(res, currentUser, 'User retrieved successfully.') : renderError(res, 'User not found.')
+})
+
 // Add a note
-app.post('/add-note', async (req, res) => {
+app.post('/add-note', authenticateToken, async (req, res) => {
   const { title, content, tags } = req.body
-  const userInfo = getUserFromBearerToken(req)
+  const { user } = req.user // retrieved from authenticateToken
 
   try {
-    const note = new Note({ title, content, tags: tags || [], isPinned: false, userId: userInfo._id })
+    const note = new Note({ title, content, tags: tags || [], isPinned: false, userId: user._id })
     await note.save()
 
     renderSuccess(res, note, 'Note created successfully.')
@@ -75,16 +82,16 @@ app.post('/add-note', async (req, res) => {
 })
 
 // Update a note
-app.put('/update-note/:noteId', async (req, res) => {
+app.put('/update-note/:noteId', authenticateToken, async (req, res) => {
   const noteId = req.params.noteId
   const { title, content, tags, isPinned } = req.body
-  const userInfo = getUserFromBearerToken(req)
+  const { user } = req.user // retrieved from authenticateToken
 
   try {
     const note = await Note.findOneAndUpdate(
-      { _id: noteId, userId: userInfo._id },  // filter
-      { title, content, tags, isPinned },     // attributes want to update
-      { new: true, runValidators: true }      // new: true => return a record that has newest(updated) attributes
+      { _id: noteId, userId: user._id },  // filter
+      { title, content, tags, isPinned }, // attributes want to update
+      { new: true, runValidators: true }  // new: true => return a record that has newest(updated) attributes
     )
 
     if (!note) return renderError(res, 'Note not found.', 404);
@@ -96,21 +103,21 @@ app.put('/update-note/:noteId', async (req, res) => {
 })
 
 // Get all notes
-app.get('/all-notes', async (req, res) => {
-  const userInfo = getUserFromBearerToken(req)
+app.get('/all-notes', authenticateToken, async (req, res) => {
+  const { user } = req.user // retrieved from authenticateToken
 
-  const notes = await Note.find({ userId: userInfo._id }).sort({ isPinned: -1 })
+  const notes = await Note.find({ userId: user._id }).sort({ isPinned: -1 })
 
   renderSuccess(res, notes, 'All notes retrieved successfully.')
 })
 
 // Destroy a Note
-app.delete('/delete-note/:noteId', async (req, res) => {
+app.delete('/delete-note/:noteId', authenticateToken, async (req, res) => {
   const noteId = req.params.noteId
-  const userInfo = getUserFromBearerToken(req)
+  const { user } = req.user // retrieved from authenticateToken
 
   try {
-    const note = await Note.findOneAndDelete({ _id: noteId, userId: userInfo._id })
+    const note = await Note.findOneAndDelete({ _id: noteId, userId: user._id })
 
     note ? renderSuccess(res, {}, 'Note deleted successfully.') : renderError(res, 'Note not found.', 404)
   } catch(error) {
@@ -119,14 +126,14 @@ app.delete('/delete-note/:noteId', async (req, res) => {
 })
 
 // Switch note isPinned
-app.put('/toggle-note-pinned/:noteId', async (req, res) => {
+app.put('/toggle-note-pinned/:noteId', authenticateToken, async (req, res) => {
   const noteId = req.params.noteId
   const { isPinned } = req.body
-  const userInfo = getUserFromBearerToken(req)
+  const { user } = req.user // retrieved from authenticateToken
 
   try {
     const note = await Note.findOneAndUpdate(
-      { _id: noteId, userId: userInfo._id },  // filter
+      { _id: noteId, userId: user._id },  // filter
       { isPinned },                           // attributes want to update
       { new: true, runValidators: true }      // new: true => return a record that has newest(updated) attributes
     )
